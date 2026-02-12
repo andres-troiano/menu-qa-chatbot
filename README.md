@@ -138,16 +138,39 @@ If `OPENAI_API_KEY` is not present:
 
 See `specs/SPEC.md` for detailed architectural documentation.
 
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) (recommended package manager)
+
+### Setup
+
+```bash
+uv venv
+uv sync
+```
+
+### Running Tests
+
+```bash
+uv run pytest -v
+```
+
+### Running the Smoke Test
+
+```bash
+uv run python src/ingest.py
+```
+
 ## Project Structure
 
 ```
 menu-chatbot/
 │
 ├── README.md
-├── specs/
-│   ├── SPEC.md
-│   └── stage0.md
-├── requirements.txt
+├── pyproject.toml
 │
 ├── data/
 │   └── dataset.json

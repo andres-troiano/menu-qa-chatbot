@@ -1,0 +1,23 @@
+[project]
+name = "menu-chatbot"
+version = "0.1.0"
+description = "Menu Q&A Chatbot – Hybrid LLM + Deterministic Architecture"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic",
+    "rapidfuzz",
+    "openai",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
