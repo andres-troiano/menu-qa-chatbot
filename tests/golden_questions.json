@@ -1,0 +1,97 @@
+[
+  {
+    "question": "What is the price of a small NUTTY BOWL?",
+    "must_contain": ["NUTTY BOWL", "Small", "price"],
+    "intent": "get_price",
+    "expected_entities": {
+      "item": "NUTTY BOWL",
+      "portion": "Small"
+    }
+  },
+  {
+    "question": "How much is the ACAI ELIXIR?",
+    "must_contain": ["ACAI ELIXIR", "price"],
+    "intent": "get_price",
+    "expected_entities": {
+      "item": "ACAI ELIXIR"
+    }
+  },
+  {
+    "question": "How much is the GREEN BOWL Large?",
+    "must_contain": ["GO GREEN", "BOWL", "Large", "price"],
+    "intent": "get_price",
+    "expected_entities": {
+      "item": "GO GREEN BOWL",
+      "portion": "Large"
+    }
+  },
+  {
+    "question": "How many calories does the GO GREEN smoothie have?",
+    "must_contain": ["GO GREEN", "smoothie", "Calories"],
+    "intent": "get_calories",
+    "expected_entities": {
+      "item": "GO GREEN smoothie"
+    }
+  },
+  {
+    "question": "Calories for Dragon Smoothie",
+    "must_contain": ["Dragon", "Smoothie", "Calories"],
+    "intent": "get_calories",
+    "expected_entities": {
+      "item": "Dragon Smoothie"
+    }
+  },
+  {
+    "question": "Which salads do you have?",
+    "must_contain": ["Salads"],
+    "intent": "list_category_items",
+    "expected_entities": {
+      "category": "salads"
+    }
+  },
+  {
+    "question": "What bowls are available?",
+    "must_contain": ["bowls"],
+    "intent": "list_category_items",
+    "expected_entities": {
+      "category": "bowls"
+    }
+  },
+  {
+    "question": "Show me smoothies",
+    "must_contain": ["smoothies"],
+    "intent": "list_category_items",
+    "expected_entities": {
+      "category": "smoothies"
+    }
+  },
+  {
+    "question": "What discounts are available?",
+    "must_contain": ["discount"],
+    "intent": "list_discounts",
+    "expected_entities": {}
+  },
+  {
+    "question": "Which discounts include coupons?",
+    "must_contain": ["discount", "coupons"],
+    "intent": "list_discounts",
+    "expected_entities": {}
+  },
+  {
+    "question": "What items trigger BOGO Any Smoothie discount?",
+    "must_contain": ["BOGO", "Any", "Smoothie", "discount"],
+    "intent": "discount_triggers",
+    "expected_entities": {
+      "discount": "BOGO Any Smoothie"
+    }
+  },
+  {
+    "question": "Is the price for Smoothie - ACAI ELIXIR the same in all channels?",
+    "must_contain": ["Smoothie", "ACAI ELIXIR", "price", "channels"],
+    "intent": "compare_price_across_channels",
+    "expected_entities": {
+      "item": "Smoothie - ACAI ELIXIR",
+      "channel": "all"
+    }
+  }
+]

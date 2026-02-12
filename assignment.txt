@@ -1,0 +1,15 @@
+The goal of this exercise is to formulate a solution demonstrating how to implement a ChatBot to answer questions about the information on a menu provided.
+A running solution (online notebook, i.e: Google Colab) is desirable but not required. Conversational capability is optional.
+The deliverable must have explanations about the issues faced and solutions taken.
+
+The file "data/dataset.json" is a demo output of a Menu handled at the company. 
+It contains Discounts, Service Charges, Taxes, Categories and the inner menu Items with their details (price, portions, nutritional info, etc).
+
+Some example questions:
+- What is the price of a small NUTTY BOWL?
+- How many calories does the GO GREEN smoothie have?
+- Which salads do you have?
+- What discounts are available today?
+- Which discounts include coupons?
+- What items trigger a BOGO Any Smoothie discount?
+- Is the price for Smoothie - ACAI ELIXIR the same in all channels?
