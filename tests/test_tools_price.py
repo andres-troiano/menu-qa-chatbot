@@ -36,3 +36,31 @@ def test_invalid_portion_returns_invalid_argument():
     assert res.error is not None
     assert res.error.code == "INVALID_ARGUMENT"
     assert res.candidates
+
+
+def test_small_dragon_bowl_portion_clarification_message():
+    index = _index()
+    res = get_item_price(index, "dragon bowl", portion="small")
+    assert res.ok is False
+    assert res.error is not None
+    assert res.error.code == "INVALID_ARGUMENT"
+    msg = res.error.message.lower()
+    assert "dragon bowl" in msg
+    assert "medium" in msg and "large" in msg
+    assert "multiple matches" not in msg
+    # preferred: include deterministic prices
+    assert res.candidates
+    assert all("portion" in c and "price" in c for c in res.candidates)
+
+
+def test_space_bowl_not_found_wording_and_suggestions():
+    index = _index()
+    res = get_item_price(index, "space bowl", portion="large")
+    assert res.ok is False
+    assert res.error is not None
+    assert res.error.code == "NOT_FOUND"
+    msg = res.error.message.lower()
+    assert "couldn't find" in msg
+    assert "space bowl" in msg
+    assert "multiple matches" not in msg
+    assert res.candidates

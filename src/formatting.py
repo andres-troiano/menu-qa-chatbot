@@ -12,22 +12,24 @@ def _format_money(value: Any) -> str:
         return str(value)
 
 
-def _format_candidates(candidates: List[Dict[str, Any]], *, query_label: str = "that") -> str:
+def _format_candidates_lines(candidates: List[Dict[str, Any]]) -> List[str]:
     if not candidates:
-        return f"I couldn't find {query_label} in the menu dataset."
-
-    lines = [f"I found multiple matches for {query_label}. Which one did you mean?"]
+        return []
+    lines: List[str] = []
     for i, c in enumerate(candidates[:5], start=1):
         if "display" in c and c["display"]:
             label = str(c["display"])
         elif "portion" in c and c["portion"]:
-            label = str(c["portion"])
+            if "price" in c and c["price"] is not None:
+                label = f"{c['portion']} — {_format_money(c['price'])}"
+            else:
+                label = str(c["portion"])
         elif "discount_id" in c:
             label = f"{c.get('name') or 'Discount'} ({c.get('discount_id')})"
         else:
             label = str(c)
         lines.append(f"{i}. {label}")
-    return "\n".join(lines)
+    return lines
 
 
 def format_tool_result(tool_result: ToolResult) -> str:
@@ -106,11 +108,17 @@ def format_tool_result(tool_result: ToolResult) -> str:
     msg = tool_result.error.message
 
     if code in {"AMBIGUOUS", "NOT_FOUND"}:
-        return _format_candidates(tool_result.candidates, query_label="your query")
+        lines = _format_candidates_lines(tool_result.candidates)
+        if lines:
+            return msg + "\n\n" + "\n".join(lines)
+        return msg
 
     if code == "INVALID_ARGUMENT":
         if tool_result.candidates:
-            return msg + "\n\n" + _format_candidates(tool_result.candidates, query_label="available options")
+            lines = _format_candidates_lines(tool_result.candidates)
+            if lines:
+                return msg + "\n\n" + "\n".join(lines)
+            return msg
         return msg
 
     if code in {"UNSUPPORTED", "INCOMPLETE_DATA"}:

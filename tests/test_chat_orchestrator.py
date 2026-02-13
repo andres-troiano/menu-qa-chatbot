@@ -53,7 +53,7 @@ def test_ambiguous_item_returns_clarification(monkeypatch, index):
         return ToolResult(
             ok=False,
             tool="get_item_price",
-            error=ToolError(code="AMBIGUOUS", message="Multiple matches"),
+            error=ToolError(code="AMBIGUOUS", message="I found multiple matches for 'bowl'. Which one did you mean?"),
             candidates=[{"display": "NUTTY BOWL"}, {"display": "GREEN BOWL"}, {"display": "DRAGON BOWL"}],
             meta={},
         )

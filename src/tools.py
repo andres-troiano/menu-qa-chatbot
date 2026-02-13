@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from .index import resolve_category, resolve_discount, resolve_item
+from .index import FUZZY_ACCEPT_THRESHOLD, resolve_category, resolve_discount, resolve_item
 from .models import MenuIndex, ResolveResult, ToolError, ToolResult
 from .utils import normalize_portion, normalize_text
 
@@ -14,19 +14,44 @@ def _candidates_from_resolve(rr: ResolveResult) -> List[Dict[str, Any]]:
     ]
 
 
-def _resolve_or_error(rr: ResolveResult, tool_name: str) -> Optional[ToolResult]:
+def _resolve_or_error(rr: ResolveResult, tool_name: str, *, query: str) -> Optional[ToolResult]:
     if rr.ok:
         return None
 
-    code = "AMBIGUOUS" if rr.reason in {"ambiguous_exact", "fuzzy_ambiguous"} else "NOT_FOUND"
-    msg = "Multiple matches found. Please be more specific." if code == "AMBIGUOUS" else "No match found."
+    # NOT_FOUND vs AMBIGUOUS:
+    # - AMBIGUOUS only for true collisions / high-confidence ambiguity
+    # - NOT_FOUND for low-confidence fuzzy suggestions
+    is_ambiguous = False
+    if rr.reason == "ambiguous_exact":
+        is_ambiguous = True
+    elif rr.reason == "fuzzy_ambiguous":
+        high = [c for c in (rr.candidates or []) if c.score >= FUZZY_ACCEPT_THRESHOLD]
+        if len(high) >= 2:
+            is_ambiguous = True
+
+    code = "AMBIGUOUS" if is_ambiguous else "NOT_FOUND"
+    if code == "NOT_FOUND":
+        msg = f"I couldn't find '{query}'. Did you mean one of these?"
+    else:
+        msg = f"I found multiple matches for '{query}'. Which one did you mean?"
     return ToolResult(
         ok=False,
         tool=tool_name,
         error=ToolError(code=code, message=msg),
         candidates=_candidates_from_resolve(rr),
-        meta={"resolve_reason": rr.reason, "query": rr.query},
+        meta={"resolve_reason": rr.reason, "query": rr.query, "original_query": query},
     )
+
+
+def _join_human(items: List[str]) -> str:
+    items = [i for i in items if i]
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
 def get_item_price(
@@ -37,7 +62,7 @@ def get_item_price(
 ) -> ToolResult:
     tool = "get_item_price"
     rr = resolve_item(index, item_query)
-    err = _resolve_or_error(rr, tool)
+    err = _resolve_or_error(rr, tool, query=item_query)
     if err:
         return err
 
@@ -76,22 +101,34 @@ def get_item_price(
 
     # Portion-priced item
     if portion is None:
-        available = [p.portion for p in item.prices if p.portion]
+        available_prices = [{"portion": p.portion, "price": p.price} for p in item.prices if p.portion]
+        portions = [p["portion"] for p in available_prices if p.get("portion")]
+        portion_list = _join_human(portions)
         return ToolResult(
             ok=False,
             tool=tool,
-            error=ToolError(code="AMBIGUOUS", message="This item has multiple portion prices. Please specify a portion."),
-            candidates=[{"portion": a} for a in available],
-            meta={**meta, "available_portions": available},
+            error=ToolError(
+                code="AMBIGUOUS",
+                message=f"{item.name} is available in {portion_list}. Which portion do you want?",
+            ),
+            candidates=available_prices,
+            meta={**meta, "available_portions": portions},
         )
 
     req = normalize_portion(portion)
     if req is None:
+        available_prices = [{"portion": p.portion, "price": p.price} for p in item.prices if p.portion]
+        portions = [p["portion"] for p in available_prices if p.get("portion")]
+        portion_list = _join_human(portions)
         return ToolResult(
             ok=False,
             tool=tool,
-            error=ToolError(code="INVALID_ARGUMENT", message="Invalid portion provided."),
-            meta=meta,
+            error=ToolError(
+                code="INVALID_ARGUMENT",
+                message=f"{item.name} is available in {portion_list}. Which portion do you want?",
+            ),
+            candidates=available_prices,
+            meta={**meta, "available_portions": portions},
         )
 
     for p in item.prices:
@@ -111,23 +148,25 @@ def get_item_price(
                 meta={**meta, "portion_normalized": req},
             )
 
-    available = [p.portion for p in item.prices if p.portion]
+    available_prices = [{"portion": p.portion, "price": p.price} for p in item.prices if p.portion]
+    portions = [p["portion"] for p in available_prices if p.get("portion")]
+    portion_list = _join_human(portions)
     return ToolResult(
         ok=False,
         tool=tool,
         error=ToolError(
             code="INVALID_ARGUMENT",
-            message=f"Portion '{portion}' not found for this item. Available portions: {', '.join(available)}",
+            message=f"{item.name} is available in {portion_list}. Which portion do you want?",
         ),
-        candidates=[{"portion": a} for a in available],
-        meta={**meta, "available_portions": available, "portion_normalized": req},
+        candidates=available_prices,
+        meta={**meta, "available_portions": portions, "portion_normalized": req},
     )
 
 
 def get_item_calories(index: MenuIndex, item_query: str) -> ToolResult:
     tool = "get_item_calories"
     rr = resolve_item(index, item_query)
-    err = _resolve_or_error(rr, tool)
+    err = _resolve_or_error(rr, tool, query=item_query)
     if err:
         return err
 
@@ -188,7 +227,7 @@ def list_items_by_category(index: MenuIndex, category_query: str) -> ToolResult:
             )
 
         # Otherwise return resolver-style error
-        err = _resolve_or_error(rr, tool)
+        err = _resolve_or_error(rr, tool, query=category_query)
         if err:
             return err
 
@@ -235,7 +274,7 @@ def list_discounts(index: MenuIndex) -> ToolResult:
 def discount_details(index: MenuIndex, discount_query: str) -> ToolResult:
     tool = "discount_details"
     rr = resolve_discount(index, discount_query)
-    err = _resolve_or_error(rr, tool)
+    err = _resolve_or_error(rr, tool, query=discount_query)
     if err:
         return err
 
@@ -268,7 +307,7 @@ def discount_details(index: MenuIndex, discount_query: str) -> ToolResult:
 def discount_triggers(index: MenuIndex, discount_query: str) -> ToolResult:
     tool = "discount_triggers"
     rr = resolve_discount(index, discount_query)
-    err = _resolve_or_error(rr, tool)
+    err = _resolve_or_error(rr, tool, query=discount_query)
     if err:
         return err
 
