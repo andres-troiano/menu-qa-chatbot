@@ -17,7 +17,10 @@ FUZZY_ACCEPT_GAP = 5.0
 def _append_index(m: Dict[str, List[int]], key: str, entity_id: int) -> None:
     if not key:
         return
-    m.setdefault(key, []).append(entity_id)
+    lst = m.setdefault(key, [])
+    # Avoid duplicate ids when we index multiple variants that normalize the same
+    if entity_id not in lst:
+        lst.append(entity_id)
 
 
 def _add_choice(choice_map: Dict[str, str], entity_id: int, variant: str, norm: str) -> None:

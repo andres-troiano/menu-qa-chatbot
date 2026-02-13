@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,11 +12,13 @@ class Price(BaseModel):
 
 class MenuItem(BaseModel):
     item_id: int  # itemMasterId
+    item_path_key: Optional[str] = None  # itemPathKey from dataset (useful for discount joins)
     title: str  # node-level title (may include prefixes like "Bowls - ...")
     name: str  # displayAttribute.itemTitle if present, else fallback to title
     category_path: List[str] = Field(default_factory=list)  # category titles from ancestors
     prices: List[Price] = Field(default_factory=list)  # normalized prices
     calories: Optional[int] = None
+    calories_source: Optional[Literal["structured", "parsed", "missing"]] = None
     description: Optional[str] = None
     applicable_discount_ids: List[int] = Field(default_factory=list)
     raw: Dict[str, Any] = Field(default_factory=dict)  # keep small raw subset if needed
@@ -67,3 +69,23 @@ class ResolveResult(BaseModel):
     resolved_display: Optional[str] = None
     candidates: List[Candidate] = Field(default_factory=list)
     reason: Optional[str] = None
+
+
+class ToolError(BaseModel):
+    code: Literal[
+        "NOT_FOUND",
+        "AMBIGUOUS",
+        "INVALID_ARGUMENT",
+        "UNSUPPORTED",
+        "INCOMPLETE_DATA",
+    ]
+    message: str
+
+
+class ToolResult(BaseModel):
+    ok: bool
+    tool: str
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[ToolError] = None
+    candidates: List[Dict[str, Any]] = Field(default_factory=list)
+    meta: Dict[str, Any] = Field(default_factory=dict)

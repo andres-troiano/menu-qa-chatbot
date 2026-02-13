@@ -266,17 +266,20 @@ def normalize_menu(
                 name = _best_name(node, title)
                 category_path = _category_titles_from_ancestors(ctx.ancestors)
                 prices = extract_prices(node)
-                calories, _src = extract_calories(node)
+                calories, calories_source = extract_calories(node)
                 desc = _best_description(node)
                 applicable_discount_ids = extract_applicable_discount_ids(node)
+                item_path_key = node.get("itemPathKey") if isinstance(node.get("itemPathKey"), str) else None
 
                 items[node_id] = MenuItem(
                     item_id=node_id,
+                    item_path_key=item_path_key,
                     title=title,
                     name=name,
                     category_path=category_path,
                     prices=prices,
                     calories=calories,
+                    calories_source=calories_source,
                     description=desc,
                     applicable_discount_ids=applicable_discount_ids,
                     raw={},  # keep light by default
@@ -287,4 +290,3 @@ def normalize_menu(
                 continue
 
     return items, categories, discounts
-
