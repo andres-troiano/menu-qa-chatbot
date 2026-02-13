@@ -170,6 +170,15 @@ uv run pytest -v
 uv run python src/ingest.py
 ```
 
+## Example questions
+
+- “What is the price of a small NUTTY BOWL?”
+- “How many calories does the GO GREEN smoothie have?”
+- “Which salads do you have?”
+- “What discounts are available?”
+- “What items trigger BOGO Any Smoothie discount?”
+- “Is the price for Smoothie - ACAI ELIXIR the same in all channels?”
+
 ## Project Structure
 
 ```

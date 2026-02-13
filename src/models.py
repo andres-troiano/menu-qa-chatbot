@@ -89,3 +89,8 @@ class ToolResult(BaseModel):
     error: Optional[ToolError] = None
     candidates: List[Dict[str, Any]] = Field(default_factory=list)
     meta: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ChatResponse(BaseModel):
+    text: str
+    meta: Dict[str, Any] = Field(default_factory=dict)
