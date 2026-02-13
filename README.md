@@ -240,6 +240,92 @@ Golden test cases are defined in `tests/golden_questions.json`. These validate:
 - Structured answer generation
 - No crashes
 
+## Issues Faced & Solutions Taken
+
+### 1. Heterogeneous Nested Menu Structure
+
+The dataset is a deeply nested tree containing categories, sellable items, modifier groups, discounts, taxes, and other entities at different levels.
+
+**Challenge:**
+There is no single flat schema suitable for direct question answering.
+
+**Solution:**
+Implemented a generic traversal layer to walk the tree deterministically, followed by a normalization pass that extracts structured `MenuItem`, `Category`, and `Discount` entities.
+Root detection required heuristic scanning since the top-level JSON contains multiple entity types.
+
+---
+
+### 2. Inconsistent Pricing Structures
+
+Some items have a single price, while others use portion-based pricing (Small / Medium / Large).
+
+**Challenge:**
+Without normalization, price logic becomes brittle and ambiguous.
+
+**Solution:**
+Normalized all pricing into a unified `List[Price]` schema with optional portion labels.
+Portion resolution is handled explicitly and never inferred implicitly.
+
+---
+
+### 3. Partial or Mixed Nutrition Data
+
+Calories are sometimes structured and sometimes embedded in descriptive text.
+
+**Solution:**
+Preferred structured nutrition fields when available and implemented safe fallback parsing from text when necessary.
+
+---
+
+### 4. Relational Discount Logic
+
+Discount definitions live outside the main menu tree and must be joined to items.
+
+**Challenge:**
+Mappings are sometimes incomplete.
+
+**Solution:**
+Extracted discount definitions separately and performed deterministic joins where possible.
+If mappings are incomplete, the system returns a partial answer with an explicit explanation rather than guessing.
+
+---
+
+### 5. Entity Resolution & Ambiguity
+
+User queries rarely match dataset titles exactly (e.g., “nutty bowl” vs canonical title).
+
+**Solution:**
+Implemented deterministic normalization and fuzzy matching with strict thresholds.
+Ambiguous matches return clarification prompts instead of selecting arbitrarily.
+
+This prevents incorrect menu responses — critical for pricing data.
+
+---
+
+### 6. LLM Integration Strategy
+
+Natural language queries require intent parsing and entity extraction.
+
+**Design Choice:**
+The LLM is used only for routing (intent + entity extraction).
+All pricing, calorie, and discount logic remains deterministic.
+
+This hybrid approach ensures:
+
+* Correctness (no hallucinated prices)
+* Transparency
+* Safe fallback if the LLM is unavailable
+
+---
+
+### 7. Reliability & Evaluator Experience
+
+Evaluators may not provide API keys.
+
+**Solution:**
+Implemented a rule-based fallback router so the system runs without any external dependencies.
+LLM routing enhances interpretation when available but is never required for correctness.
+
 ## License
 
 No license. Provided for evaluation purposes only.
