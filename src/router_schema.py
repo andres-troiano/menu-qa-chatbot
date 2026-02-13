@@ -43,3 +43,14 @@ class RouterOutput(BaseModel):
             raise ValueError(f"intent '{self.intent}' requires 'discount'")
 
         return self
+
+
+class RouteMeta(BaseModel):
+    router: Literal["llm", "fallback"]
+    reason: Optional[str] = None
+    model: Optional[str] = None
+
+
+class RouteResult(BaseModel):
+    route: RouterOutput
+    meta: RouteMeta

@@ -152,6 +152,12 @@ uv venv
 uv sync
 ```
 
+### Environment variables
+
+- `OPENAI_API_KEY`: if set, routing will use the LLM first; otherwise it automatically falls back to the rule-based router.
+- `OPENAI_MODEL` (optional): overrides the router model (default is `gpt-4o-mini`).
+- `DEBUG_ROUTER=1` (optional): prints which router path was chosen (never logs API keys).
+
 ### Running Tests
 
 ```bash
@@ -186,20 +192,20 @@ menu-chatbot/
 │   ├── llm_router.py
 │   ├── fallback_router.py
 │   ├── router.py
-│   ├── chat.py
-│   └── bootstrap.py
 │
 ├── tests/
 │   ├── golden_questions.json
 │   ├── test_ingest.py
 │   ├── test_normalize.py
+│   ├── test_index.py
+│   ├── test_resolution.py
 │   ├── test_tools_price.py
 │   ├── test_tools_nutrition.py
 │   ├── test_tools_category.py
-│   └── test_router.py
-│
-└── notebooks/
-    └── demo.ipynb
+│   ├── test_tools_discounts.py
+│   ├── test_llm_router.py
+│   ├── test_fallback_router.py
+│   └── test_router_orchestrator.py
 ```
 
 ## Development Status
