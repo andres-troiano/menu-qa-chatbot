@@ -2,6 +2,12 @@
 
 A hybrid LLM + deterministic architecture chatbot that answers questions about restaurant menu items, pricing, nutrition, categories, and discounts.
 
+## Colab demo
+
+Open the notebook in Colab (replace placeholders with your repo details):
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/andres-troiano/menu-qa-chatbot/blob/main/notebooks/demo.ipynb)
+
 ## Overview
 
 This chatbot uses a hybrid approach where:
@@ -14,7 +20,7 @@ This ensures factual correctness and prevents hallucinations while leveraging LL
 
 The chatbot supports the following question types:
 
-### 1️⃣ Price Lookup
+### 1. Price Lookup
 
 Ask about item prices, optionally specifying portion size:
 
@@ -28,7 +34,7 @@ Ask about item prices, optionally specifying portion size:
 - If portion not specified but multiple exist → chooses default or asks for clarification
 - Never hallucinates prices — all prices come from structured data
 
-### 2️⃣ Nutrition Lookup (Calories)
+### 2. Nutrition Lookup (Calories)
 
 Query calorie information for menu items:
 
@@ -40,7 +46,7 @@ Query calorie information for menu items:
 - Falls back to extracting from description if needed
 - Returns explicit "Calories not available" if none found
 
-### 3️⃣ Category Listing
+### 3. Category Listing
 
 List all items in a specific category:
 
@@ -53,7 +59,7 @@ List all items in a specific category:
 - Excludes modifier groups
 - Preserves canonical item names
 
-### 4️⃣ Discount Listing
+### 4. Discount Listing
 
 Get information about available discounts:
 
@@ -64,7 +70,7 @@ Get information about available discounts:
 - Lists discount definitions from the dataset
 - If coupon information not present → states that explicitly
 
-### 5️⃣ Discount Trigger Query
+### 5. Discount Trigger Query
 
 Find which items trigger specific discounts:
 
@@ -74,7 +80,7 @@ Find which items trigger specific discounts:
 - Attempts to join discount → item groups → items
 - If dataset does not allow full mapping → explains limitation clearly
 
-### 6️⃣ Cross-Channel Price Comparison
+### 6. Cross-Channel Price Comparison
 
 Compare prices across different channels:
 
@@ -101,12 +107,12 @@ The chatbot is a **read-only informational assistant** over the provided dataset
 
 ## Behavioral Guarantees
 
-### 1️⃣ No Hallucinated Prices
+### 1. No Hallucinated Prices
 
 All prices must come directly from structured data. If an item is not found, the system will respond:
 > "I couldn't find that item. Did you mean one of these: …?"
 
-### 2️⃣ Deterministic Factual Logic
+### 2. Deterministic Factual Logic
 
 The LLM **never computes**:
 - Prices
@@ -117,7 +123,7 @@ The LLM is limited to:
 - Intent detection
 - Entity extraction
 
-### 3️⃣ Safe Failure
+### 3. Safe Failure
 
 If:
 - Item resolution confidence is low
@@ -128,7 +134,7 @@ The system will:
 - Ask clarifying questions
 - Or explain dataset limitations
 
-### 4️⃣ Runnable Without OpenAI Key
+### 4. Runnable Without OpenAI Key
 
 If `OPENAI_API_KEY` is not present:
 - System still runs
@@ -136,7 +142,10 @@ If `OPENAI_API_KEY` is not present:
 
 ## Architecture
 
-See `specs/SPEC.md` for detailed architectural documentation.
+High-level flow:
+
+- `src.bootstrap.load_index()` loads and normalizes `data/dataset.json`, then builds a `MenuIndex`
+- `src.chat.answer()` routes the question (LLM if available, otherwise rule-based fallback) and calls deterministic tools for facts
 
 ## Getting Started
 
@@ -223,11 +232,6 @@ menu-chatbot/
 │   └── test_router_orchestrator.py
 ```
 
-## Development Status
-
-- ✅ Stage 0: Acceptance Criteria & Golden Questions
-- ⏳ Stage 1+: Implementation in progress
-
 ## Testing
 
 Golden test cases are defined in `tests/golden_questions.json`. These validate:
@@ -238,4 +242,4 @@ Golden test cases are defined in `tests/golden_questions.json`. These validate:
 
 ## License
 
-[To be determined]
+No license. Provided for evaluation purposes only.
