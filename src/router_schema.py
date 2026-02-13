@@ -49,6 +49,8 @@ class RouteMeta(BaseModel):
     router: Literal["llm", "fallback"]
     reason: Optional[str] = None
     model: Optional[str] = None
+    error_type: Optional[str] = None
+    error_message: Optional[str] = None
 
 
 class RouteResult(BaseModel):

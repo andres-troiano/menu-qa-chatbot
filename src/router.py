@@ -10,6 +10,13 @@ from .llm_router import DEFAULT_ROUTER_MODEL, route_with_llm
 from .router_schema import RouteMeta, RouteResult
 
 
+def _truncate(s: str, max_len: int = 200) -> str:
+    s = s or ""
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 1] + "…"
+
+
 def _classify_llm_error(exc: Exception) -> str:
     # Best-effort classification without depending tightly on OpenAI exception types.
     name = exc.__class__.__name__.lower()
@@ -61,4 +68,12 @@ def route(question: str) -> RouteResult:
         reason = _classify_llm_error(e)
         rr = route_with_rules(question)
         _debug_log("fallback", reason)
-        return RouteResult(route=rr, meta=RouteMeta(router="fallback", reason=reason))
+        return RouteResult(
+            route=rr,
+            meta=RouteMeta(
+                router="fallback",
+                reason=reason,
+                error_type=e.__class__.__name__,
+                error_message=_truncate(str(e)),
+            ),
+        )

@@ -54,4 +54,6 @@ def test_api_key_present_llm_throws_falls_back(monkeypatch):
     assert result.meta.router == "fallback"
     assert result.meta.reason is not None
     assert result.meta.reason.startswith("llm_")
+    assert result.meta.error_type == "Exception"
+    assert result.meta.error_message is not None and "boom" in result.meta.error_message
     assert result.route.intent == "unknown"
