@@ -164,6 +164,12 @@ uv sync
 uv run pytest -v
 ```
 
+### Quickstart (bootstrap + chat)
+
+```bash
+uv run python -c "from src.bootstrap import load_index; from src.chat import answer; idx=load_index('data/dataset.json'); print(answer('What is the price of a small NUTTY BOWL?', idx))"
+```
+
 ### Running the Smoke Test
 
 ```bash
