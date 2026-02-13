@@ -4,7 +4,7 @@ A hybrid LLM + deterministic architecture chatbot that answers questions about r
 
 ## Colab demo
 
-Open the notebook in Colab (replace placeholders with your repo details):
+Open the notebook in Colab:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/andres-troiano/menu-qa-chatbot/blob/main/notebooks/demo.ipynb)
 
