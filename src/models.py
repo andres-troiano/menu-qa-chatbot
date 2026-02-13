@@ -34,3 +34,36 @@ class Discount(BaseModel):
     name: Optional[str] = None
     raw: Dict[str, Any] = Field(default_factory=dict)
 
+
+class MenuIndex(BaseModel):
+    # Primary tables
+    items: Dict[int, MenuItem] = Field(default_factory=dict)
+    categories: Dict[int, Category] = Field(default_factory=dict)
+    discounts: Dict[int, Discount] = Field(default_factory=dict)
+
+    # Secondary indexes: normalized name -> ids (collisions stored as list)
+    items_by_norm_name: Dict[str, List[int]] = Field(default_factory=dict)
+    categories_by_norm_name: Dict[str, List[int]] = Field(default_factory=dict)
+    discounts_by_norm_name: Dict[str, List[int]] = Field(default_factory=dict)
+
+    # Fuzzy matching helpers: key -> normalized string (key encodes id + variant)
+    item_choice_map: Dict[str, str] = Field(default_factory=dict)
+    category_choice_map: Dict[str, str] = Field(default_factory=dict)
+    discount_choice_map: Dict[str, str] = Field(default_factory=dict)
+
+
+class Candidate(BaseModel):
+    entity_type: str  # "item" | "category" | "discount"
+    entity_id: int
+    display: str
+    score: float
+
+
+class ResolveResult(BaseModel):
+    ok: bool
+    entity_type: str  # "item" | "category" | "discount"
+    query: str
+    resolved_id: Optional[int] = None
+    resolved_display: Optional[str] = None
+    candidates: List[Candidate] = Field(default_factory=list)
+    reason: Optional[str] = None
