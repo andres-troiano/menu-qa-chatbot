@@ -5,6 +5,7 @@ from typing import Optional
 from .formatting import format_tool_result
 from .models import ChatResponse, MenuIndex, ToolError, ToolResult
 from .router import route
+from .utils import normalize_text, sanitize_discount_query
 from .tools import (
     compare_price_across_channels,
     discount_details,
@@ -14,6 +15,48 @@ from .tools import (
     list_discounts,
     list_items_by_category,
 )
+
+
+def _coupon_discounts_message(index: MenuIndex) -> str:
+    """
+    Return either:
+    - explicit limitation message if coupon fields aren't present anywhere, or
+    - a list of discounts that appear to require/include coupons.
+    """
+    # Detect whether coupon-related fields exist at all
+    coupon_fields_present = False
+    coupon_discounts = []
+
+    for d in index.discounts.values():
+        raw = d.raw or {}
+        if not isinstance(raw, dict):
+            continue
+
+        if any(k in raw for k in ("couponRequired", "requiresCoupon", "couponCode", "coupon")):
+            coupon_fields_present = True
+
+        required = raw.get("couponRequired")
+        if required is True:
+            coupon_discounts.append(d)
+            continue
+
+        # Treat a non-empty couponCode as a "coupon present" equivalent.
+        code = raw.get("couponCode")
+        if isinstance(code, str) and code.strip():
+            coupon_discounts.append(d)
+
+    if not coupon_fields_present:
+        return "This dataset doesn’t include coupon information for discounts."
+
+    if not coupon_discounts:
+        return "No discounts with coupons were found in this dataset."
+
+    # Format a compact list
+    names = [dd.name or str(dd.discount_id) for dd in coupon_discounts]
+    names = sorted(set(names), key=lambda s: s.lower())
+    shown = names[:10]
+    suffix = "…" if len(names) > 10 else ""
+    return f"Discounts with coupons ({len(names)}): {', '.join(shown)}{suffix}"
 
 
 def _missing_entity_prompt(intent: str) -> str:
@@ -48,6 +91,18 @@ def answer_with_meta(
         if debug:
             meta["router"] = route_result.meta.model_dump()
 
+        # Discount sanitization (generic, router-agnostic)
+        sanitized_discount = sanitize_discount_query(question, r.discount)
+        if r.intent.startswith("discount_"):
+            r.discount = sanitized_discount
+
+        # Router-agnostic coupon handling:
+        # If user asks about coupons and no specific discount is named, answer deterministically.
+        q_norm = normalize_text(question)
+        q_tokens = set(q_norm.split()) if q_norm else set()
+        if ("coupon" in q_tokens or "coupons" in q_tokens) and (not sanitized_discount):
+            return ChatResponse(text=_coupon_discounts_message(index), meta=meta)
+
         # Dispatch to tools based on intent
         tr: Optional[ToolResult] = None
 
@@ -74,7 +129,8 @@ def answer_with_meta(
 
         elif r.intent == "discount_details":
             if not r.discount:
-                return ChatResponse(text=_missing_entity_prompt("discount_details"), meta=meta)
+                # Coupon-style question ("Which discounts include coupons?")
+                return ChatResponse(text=_coupon_discounts_message(index), meta=meta)
             tr = discount_details(index, discount_query=r.discount)
 
         elif r.intent == "discount_triggers":

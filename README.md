@@ -31,7 +31,7 @@ Ask about item prices, optionally specifying portion size:
 **Behavior:**
 - Correctly resolves item names
 - Resolves portion when specified (Small, Medium, Large, etc.)
-- If portion not specified but multiple exist → chooses default or asks for clarification
+- If portion not specified and multiple portions exist → either selects the dataset default (if flagged) or asks for clarification.
 - Never hallucinates prices, all prices come from structured data
 
 ### 2. Nutrition Lookup (Calories)
@@ -146,6 +146,23 @@ High-level flow:
 
 - `src.bootstrap.load_index()` loads and normalizes `data/dataset.json`, then builds a `MenuIndex`
 - `src.chat.answer()` routes the question (LLM if available, otherwise rule-based fallback) and calls deterministic tools for facts
+
+```text
+User Question
+     ↓
+Router (LLM or Rule-Based)
+     ↓
+Structured Intent + Entities
+     ↓
+Deterministic Tools
+     ↓
+Formatted Response
+```
+
+## Stateless by Design
+
+The system is stateless across queries. Each question is processed independently.
+Conversational memory (e.g., resolving follow-ups like “what about large?”) could be added via a lightweight session layer but was intentionally kept out of scope to prioritize correctness and deterministic behavior.
 
 ## Getting Started
 
@@ -299,6 +316,8 @@ Implemented deterministic normalization and fuzzy matching with strict threshold
 Ambiguous matches return clarification prompts instead of selecting arbitrarily.
 
 This prevents incorrect menu responses, critical for pricing data.
+
+Additional normalization ensures generic tokens (e.g., “discount”, “deal”, “coupon”) are not treated as entities, preventing false matches.
 
 ---
 

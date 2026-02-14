@@ -175,6 +175,20 @@ def route_with_rules(question: str) -> RouterOutput:
         channel = extract_channel_token(t)
 
         # Rule priority order
+        # Coupon questions (force discount_details even without a specific discount)
+        if "coupon" in t or "coupons" in t:
+            return RouterOutput.model_validate(
+                {
+                    "intent": "discount_details",
+                    "item": None,
+                    "portion": None,
+                    "category": None,
+                    "discount": None,
+                    "channel": None,
+                },
+                context={"allow_incomplete": True},
+            )
+
         # 1) Compare price across channels
         if any(
             phrase in t

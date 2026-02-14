@@ -124,4 +124,4 @@ def route_with_llm(question: str) -> RouterOutput:
 
     payload = _parse_router_json_only(raw)
     # Pydantic validation (fail-closed if incoherent)
-    return RouterOutput.model_validate(payload)
+    return RouterOutput.model_validate(payload, context={"strict": True})

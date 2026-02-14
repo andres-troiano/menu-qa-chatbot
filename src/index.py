@@ -13,6 +13,20 @@ FUZZY_ACCEPT_THRESHOLD = 90.0
 FUZZY_AMBIGUOUS_THRESHOLD = 80.0
 FUZZY_ACCEPT_GAP = 5.0
 
+_DISCOUNT_SUFFIX_TOKENS = {"discount", "deal", "offer", "promo", "promotion"}
+
+
+def _normalize_discount_query(query: str) -> str:
+    """
+    Normalize and strip trailing generic tokens like:
+    discount/deal/offer/promo/promotion.
+    """
+    norm = normalize_text(query)
+    parts = norm.split()
+    while parts and parts[-1] in _DISCOUNT_SUFFIX_TOKENS:
+        parts.pop()
+    return " ".join(parts).strip()
+
 
 def _append_index(m: Dict[str, List[int]], key: str, entity_id: int) -> None:
     if not key:
@@ -228,10 +242,13 @@ def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5) -> Resolve
             return str(did)
         return disc.name or str(did)
 
+    # Normalize discount query by stripping trailing generic tokens (e.g. "... discount")
+    match_query = _normalize_discount_query(q) or q
+
     return _resolve_generic(
         index=index,
         entity_type="discount",
-        query=query,
+        query=match_query,
         exact_map=index.discounts_by_norm_name,
         choice_map=index.discount_choice_map,
         display_lookup=display_lookup,

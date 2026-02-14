@@ -102,3 +102,74 @@ def test_unsupported_comparison_is_honest(monkeypatch, index):
     text = answer("Is the price the same in all channels?", index)
     assert "CHANNEL" in text.upper()
     assert ("DOESN" in text.upper()) or ("DOES NOT" in text.upper())
+
+
+def test_coupons_question_returns_explicit_limitation_when_absent(monkeypatch):
+    # Synthetic index with discounts that have no coupon fields anywhere.
+    from src.models import Discount, MenuIndex
+    from src.router_schema import RouterOutput
+
+    synthetic = MenuIndex(
+        items={},
+        categories={},
+        discounts={
+            1: Discount(discount_id=1, name="Test Discount", raw={}),
+            2: Discount(discount_id=2, name="Another Discount", raw={"someField": 1}),
+        },
+    )
+
+    def fake_route(question: str):
+        r = RouterOutput.model_validate(
+            {
+                "intent": "unknown",
+                "item": None,
+                "portion": None,
+                "category": None,
+                "discount": "coupons",
+                "channel": None,
+            }
+        )
+        return RouteResult(route=r, meta=RouteMeta(router="fallback", reason="test"))
+
+    monkeypatch.setattr("src.chat.route", fake_route)
+    text = answer("Which discounts include coupons?", synthetic)
+    assert "coupon information" in text.lower()
+    assert "i can help with" not in text.lower()
+
+
+def test_discount_triggers_expands_generic_bogo_from_question(monkeypatch, index):
+    from src.router_schema import RouterOutput
+    from src.models import ToolError, ToolResult
+
+    def fake_route(question: str):
+        r = RouterOutput.model_validate(
+            {
+                "intent": "discount_triggers",
+                "item": None,
+                "portion": None,
+                "category": None,
+                "discount": "BOGO",
+                "channel": None,
+            }
+        )
+        return RouteResult(route=r, meta=RouteMeta(router="fallback", reason="test"))
+
+    captured = {}
+
+    def fake_discount_triggers(_index, *, discount_query: str):
+        captured["discount_query"] = discount_query
+        return ToolResult(
+            ok=False,
+            tool="discount_triggers",
+            error=ToolError(code="INCOMPLETE_DATA", message="ok"),
+            meta={},
+        )
+
+    monkeypatch.setattr("src.chat.route", fake_route)
+    monkeypatch.setattr("src.chat.discount_triggers", fake_discount_triggers)
+
+    text = answer("What items trigger a BOGO Any Smoothie discount?", index)
+    assert captured["discount_query"] is not None
+    assert "bogo" in captured["discount_query"].lower()
+    assert "smoothie" in captured["discount_query"].lower()
+    assert "which one did you mean" not in text.lower()

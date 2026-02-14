@@ -26,13 +26,14 @@ class RouterOutput(BaseModel):
 
     @model_validator(mode="after")
     def _coherence_rules(self, info: ValidationInfo) -> "RouterOutput":
-        # Strict for LLM router; permissive for fallback router.
-        # The fallback router should be allowed to return intent with missing entities
-        # so the chat layer can ask clarifying questions.
-        if info.context and info.context.get("allow_incomplete") is True:
+        # By default, be permissive so the fallback router can return incomplete
+        # entities and the chat layer can ask clarifying questions.
+        #
+        # The LLM router must validate strictly; it should pass context={"strict": True}.
+        if not (info.context and info.context.get("strict") is True):
             return self
 
-        # Enforce coherent payloads so downstream code never needs to guess.
+        # Enforce coherent payloads (LLM path).
         if self.intent in {"get_price", "get_calories", "compare_price_across_channels"} and not self.item:
             raise ValueError(f"intent '{self.intent}' requires 'item'")
 

@@ -1,5 +1,5 @@
 from src.ingest import load_dataset
-from src.index import build_index, resolve_item
+from src.index import build_index, resolve_discount, resolve_item
 from src.normalize import normalize_menu
 from src.utils import extract_portion_tokens
 
@@ -48,3 +48,13 @@ def test_unknown_returns_ok_false():
 def test_portion_extraction():
     assert extract_portion_tokens("price of a small nutty bowl") == "small"
     assert extract_portion_tokens("large green bowl") == "large"
+
+
+def test_discount_query_strips_trailing_discount():
+    index = _build()
+    res = resolve_discount(index, "bogo any smoothie discount")
+    assert res.entity_type == "discount"
+    assert res.ok is True
+    assert res.resolved_display is not None
+    assert "BOGO" in res.resolved_display.upper()
+    assert "SMOOTHIE" in res.resolved_display.upper()
