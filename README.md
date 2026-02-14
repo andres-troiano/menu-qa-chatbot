@@ -32,7 +32,7 @@ Ask about item prices, optionally specifying portion size:
 - Correctly resolves item names
 - Resolves portion when specified (Small, Medium, Large, etc.)
 - If portion not specified but multiple exist → chooses default or asks for clarification
-- Never hallucinates prices — all prices come from structured data
+- Never hallucinates prices, all prices come from structured data
 
 ### 2. Nutrition Lookup (Calories)
 
@@ -298,7 +298,7 @@ User queries rarely match dataset titles exactly (e.g., “nutty bowl” vs cano
 Implemented deterministic normalization and fuzzy matching with strict thresholds.
 Ambiguous matches return clarification prompts instead of selecting arbitrarily.
 
-This prevents incorrect menu responses — critical for pricing data.
+This prevents incorrect menu responses, critical for pricing data.
 
 ---
 
