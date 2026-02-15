@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from rapidfuzz import fuzz, process
 
 from .models import Candidate, Category, Discount, MenuIndex, MenuItem, ResolveResult
-from .utils import normalize_text
+from .utils import _trace, normalize_text
 
 
 FUZZY_ACCEPT_THRESHOLD = 90.0
@@ -189,12 +189,12 @@ def _resolve_generic(
     )
 
 
-def resolve_item(index: MenuIndex, query: str, *, top_k: int = 5) -> ResolveResult:
+def resolve_item(index: MenuIndex, query: str, *, top_k: int = 5, debug: bool = False) -> ResolveResult:
     def display_lookup(item_id: int) -> str:
         item = index.items.get(item_id)
         return item.name if item else str(item_id)
 
-    return _resolve_generic(
+    result = _resolve_generic(
         index=index,
         entity_type="item",
         query=query,
@@ -203,6 +203,20 @@ def resolve_item(index: MenuIndex, query: str, *, top_k: int = 5) -> ResolveResu
         display_lookup=display_lookup,
         top_k=top_k,
     )
+    _trace(
+        debug,
+        "resolver.item",
+        {
+            "query": query,
+            "normalized_query": normalize_text(query),
+            "ok": result.ok,
+            "reason": result.reason,
+            "resolved_id": result.resolved_id,
+            "resolved_display": result.resolved_display,
+            "candidates": [c.model_dump() for c in (result.candidates or [])[:3]],
+        },
+    )
+    return result
 
 
 def resolve_category(index: MenuIndex, query: str, *, top_k: int = 5) -> ResolveResult:
@@ -221,13 +235,13 @@ def resolve_category(index: MenuIndex, query: str, *, top_k: int = 5) -> Resolve
     )
 
 
-def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5) -> ResolveResult:
+def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5, debug: bool = False) -> ResolveResult:
     q = query.strip() if isinstance(query, str) else str(query)
     if q.isdigit():
         did = int(q)
         d = index.discounts.get(did)
         if d:
-            return ResolveResult(
+            result = ResolveResult(
                 ok=True,
                 entity_type="discount",
                 query=query,
@@ -235,6 +249,8 @@ def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5) -> Resolve
                 resolved_display=d.name or str(did),
                 reason="id",
             )
+            _trace(debug, "resolver.discount", {"query": query, "normalized_query": normalize_text(query), "ok": True, "reason": "id"})
+            return result
 
     def display_lookup(did: int) -> str:
         disc = index.discounts.get(did)
@@ -245,7 +261,7 @@ def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5) -> Resolve
     # Normalize discount query by stripping trailing generic tokens (e.g. "... discount")
     match_query = _normalize_discount_query(q) or q
 
-    return _resolve_generic(
+    result = _resolve_generic(
         index=index,
         entity_type="discount",
         query=match_query,
@@ -254,3 +270,17 @@ def resolve_discount(index: MenuIndex, query: str, *, top_k: int = 5) -> Resolve
         display_lookup=display_lookup,
         top_k=top_k,
     )
+    _trace(
+        debug,
+        "resolver.discount",
+        {
+            "query": query,
+            "normalized_query": normalize_text(match_query),
+            "ok": result.ok,
+            "reason": result.reason,
+            "resolved_id": result.resolved_id,
+            "resolved_display": result.resolved_display,
+            "candidates": [c.model_dump() for c in (result.candidates or [])[:3]],
+        },
+    )
+    return result

@@ -59,9 +59,11 @@ def get_item_price(
     item_query: str,
     portion: str | None = None,
     channel: str | None = None,
+    *,
+    debug: bool = False,
 ) -> ToolResult:
     tool = "get_item_price"
-    rr = resolve_item(index, item_query)
+    rr = resolve_item(index, item_query, debug=debug)
     err = _resolve_or_error(rr, tool, query=item_query)
     if err:
         return err
@@ -163,9 +165,9 @@ def get_item_price(
     )
 
 
-def get_item_calories(index: MenuIndex, item_query: str) -> ToolResult:
+def get_item_calories(index: MenuIndex, item_query: str, *, debug: bool = False) -> ToolResult:
     tool = "get_item_calories"
-    rr = resolve_item(index, item_query)
+    rr = resolve_item(index, item_query, debug=debug)
     err = _resolve_or_error(rr, tool, query=item_query)
     if err:
         return err
@@ -271,9 +273,9 @@ def list_discounts(index: MenuIndex) -> ToolResult:
     )
 
 
-def discount_details(index: MenuIndex, discount_query: str) -> ToolResult:
+def discount_details(index: MenuIndex, discount_query: str, *, debug: bool = False) -> ToolResult:
     tool = "discount_details"
-    rr = resolve_discount(index, discount_query)
+    rr = resolve_discount(index, discount_query, debug=debug)
     err = _resolve_or_error(rr, tool, query=discount_query)
     if err:
         return err
@@ -304,9 +306,9 @@ def discount_details(index: MenuIndex, discount_query: str) -> ToolResult:
     )
 
 
-def discount_triggers(index: MenuIndex, discount_query: str) -> ToolResult:
+def discount_triggers(index: MenuIndex, discount_query: str, *, debug: bool = False) -> ToolResult:
     tool = "discount_triggers"
-    rr = resolve_discount(index, discount_query)
+    rr = resolve_discount(index, discount_query, debug=debug)
     err = _resolve_or_error(rr, tool, query=discount_query)
     if err:
         return err

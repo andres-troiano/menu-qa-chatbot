@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from .formatting import format_tool_result
 from .models import ChatResponse, MenuIndex, ToolError, ToolResult
 from .router import route
-from .utils import normalize_text, sanitize_discount_query
+from .utils import _trace, normalize_text, sanitize_discount_query
 from .tools import (
     compare_price_across_channels,
     discount_details,
@@ -84,23 +85,73 @@ def answer_with_meta(
     Structured answer (text + meta). Must never raise for normal user input.
     """
     try:
-        route_result = route(question)
+        trace_enabled = bool(debug or os.getenv("DEBUG_TRACE") == "1")
+        route_result = route(question, debug=trace_enabled)
         r = route_result.route
+
+        raw_intent = r.intent
+        raw_entities = {
+            "item": r.item,
+            "portion": r.portion,
+            "category": r.category,
+            "discount": r.discount,
+            "channel": r.channel,
+        }
+        raw_discount = r.discount
 
         meta = {}
         if debug:
             meta["router"] = route_result.meta.model_dump()
 
+        raw_llm_output_preview = None
+        if route_result.meta.router == "llm" and route_result.raw_llm_output:
+            preview = route_result.raw_llm_output.strip()
+            cap = 1000
+            raw_llm_output_preview = preview if len(preview) <= cap else preview[: cap - 1] + "…"
+
+        _trace(
+            trace_enabled,
+            "router.result",
+            {
+                "router": route_result.meta.router,
+                "model": route_result.meta.model,
+                "reason": route_result.meta.reason,
+                "error_type": getattr(route_result.meta, "error_type", None),
+                "intent": raw_intent,
+                "entities": raw_entities,
+                "raw_llm_output_preview": raw_llm_output_preview,
+            },
+        )
+
         # Discount sanitization (generic, router-agnostic)
         sanitized_discount = sanitize_discount_query(question, r.discount)
-        if r.intent.startswith("discount_"):
+        # Apply centrally (even if intent isn't discount_*), so traces and coupon logic
+        # reflect true before/after values and we avoid treating "coupons" as a discount name.
+        if (sanitized_discount or None) != (r.discount or None):
             r.discount = sanitized_discount
 
         # Router-agnostic coupon handling:
         # If user asks about coupons and no specific discount is named, answer deterministically.
         q_norm = normalize_text(question)
         q_tokens = set(q_norm.split()) if q_norm else set()
-        if ("coupon" in q_tokens or "coupons" in q_tokens) and (not sanitized_discount):
+        coupon_override_applied = ("coupon" in q_tokens or "coupons" in q_tokens) and (not sanitized_discount)
+
+        discount_sanitized = (raw_discount or None) != (r.discount or None)
+
+        _trace(
+            trace_enabled,
+            "router.postprocess",
+            {
+                "coupon_override_applied": coupon_override_applied,
+                "discount_sanitized": bool(discount_sanitized),
+                "intent_before": raw_intent,
+                "intent_after": r.intent,
+                "discount_before": raw_discount,
+                "discount_after": r.discount,
+            },
+        )
+
+        if coupon_override_applied:
             return ChatResponse(text=_coupon_discounts_message(index), meta=meta)
 
         # Dispatch to tools based on intent
@@ -112,12 +163,12 @@ def answer_with_meta(
         if r.intent == "get_price":
             if not r.item:
                 return ChatResponse(text=_missing_entity_prompt("get_price"), meta=meta)
-            tr = get_item_price(index, item_query=r.item, portion=r.portion, channel=r.channel)
+            tr = get_item_price(index, item_query=r.item, portion=r.portion, channel=r.channel, debug=trace_enabled)
 
         elif r.intent == "get_calories":
             if not r.item:
                 return ChatResponse(text=_missing_entity_prompt("get_calories"), meta=meta)
-            tr = get_item_calories(index, item_query=r.item)
+            tr = get_item_calories(index, item_query=r.item, debug=trace_enabled)
 
         elif r.intent == "list_category_items":
             if not r.category:
@@ -131,12 +182,12 @@ def answer_with_meta(
             if not r.discount:
                 # Coupon-style question ("Which discounts include coupons?")
                 return ChatResponse(text=_coupon_discounts_message(index), meta=meta)
-            tr = discount_details(index, discount_query=r.discount)
+            tr = discount_details(index, discount_query=r.discount, debug=trace_enabled)
 
         elif r.intent == "discount_triggers":
             if not r.discount:
                 return ChatResponse(text=_missing_entity_prompt("discount_triggers"), meta=meta)
-            tr = discount_triggers(index, discount_query=r.discount)
+            tr = discount_triggers(index, discount_query=r.discount, debug=trace_enabled)
 
         elif r.intent == "compare_price_across_channels":
             if not r.item:
@@ -147,6 +198,18 @@ def answer_with_meta(
             return ChatResponse(text=_missing_entity_prompt("unknown"), meta=meta)
 
         text = format_tool_result(tr)
+
+        _trace(
+            trace_enabled,
+            "tool.result",
+            {
+                "tool": tr.tool if tr else None,
+                "ok": tr.ok if tr else None,
+                "error_code": tr.error.code if tr and tr.error else None,
+                "candidate_count": len(tr.candidates) if tr else 0,
+                "meta_keys": sorted(list((tr.meta or {}).keys())) if tr else [],
+            },
+        )
 
         # Minimal session memory (optional)
         if session is not None and tr and tr.ok and tr.data and "item_id" in tr.data:

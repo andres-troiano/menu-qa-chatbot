@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import json
+import sys
 import unicodedata
 from typing import Optional
 
@@ -127,3 +129,16 @@ def sanitize_discount_query(question: str, discount: str | None) -> str | None:
         return d_raw
 
     return d_raw
+
+
+def _trace(enabled: bool, event: str, payload: dict) -> None:
+    """
+    Lightweight structured tracing to stderr.
+    No-op when disabled.
+    """
+    if not enabled:
+        return
+    print(
+        f"[trace] {event} {json.dumps(payload, ensure_ascii=False, default=str)}",
+        file=sys.stderr,
+    )

@@ -125,3 +125,21 @@ def route_with_llm(question: str) -> RouterOutput:
     payload = _parse_router_json_only(raw)
     # Pydantic validation (fail-closed if incoherent)
     return RouterOutput.model_validate(payload, context={"strict": True})
+
+
+def route_with_llm_and_raw(question: str) -> tuple[RouterOutput, str]:
+    """
+    Debug helper: returns (RouterOutput, raw_llm_text) for tracing.
+    """
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("OPENAI_API_KEY not set")
+
+    model = os.getenv("OPENAI_MODEL", DEFAULT_ROUTER_MODEL)
+    user_prompt = USER_PROMPT_TEMPLATE.format(question=question)
+
+    raw = _call_openai(model=model, system_prompt=SYSTEM_PROMPT, user_prompt=user_prompt)
+    _debug_log({"model": model, "raw_response": raw})
+
+    payload = _parse_router_json_only(raw)
+    out = RouterOutput.model_validate(payload, context={"strict": True})
+    return out, raw

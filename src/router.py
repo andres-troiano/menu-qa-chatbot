@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import ValidationError
 
 from .fallback_router import route_with_rules
-from .llm_router import DEFAULT_ROUTER_MODEL, route_with_llm
+from .llm_router import DEFAULT_ROUTER_MODEL, route_with_llm, route_with_llm_and_raw
 from .router_schema import RouteMeta, RouteResult
 
 
@@ -48,7 +48,7 @@ def _debug_log(router: str, reason: Optional[str] = None) -> None:
             print(f"[router] selected={router}")
 
 
-def route(question: str) -> RouteResult:
+def route(question: str, *, debug: bool = False) -> RouteResult:
     """
     Unified routing entrypoint.
     Never raises.
@@ -60,10 +60,15 @@ def route(question: str) -> RouteResult:
         return RouteResult(route=rr, meta=RouteMeta(router="fallback", reason="missing_api_key"))
 
     try:
-        rr = route_with_llm(question)
+        raw_llm: Optional[str] = None
+        if debug:
+            rr, raw_llm = route_with_llm_and_raw(question)
+            raw_llm = _truncate(raw_llm, max_len=4000)
+        else:
+            rr = route_with_llm(question)
         model = os.getenv("OPENAI_MODEL", DEFAULT_ROUTER_MODEL)
         _debug_log("llm")
-        return RouteResult(route=rr, meta=RouteMeta(router="llm", model=model))
+        return RouteResult(route=rr, meta=RouteMeta(router="llm", model=model), raw_llm_output=raw_llm)
     except Exception as e:
         reason = _classify_llm_error(e)
         rr = route_with_rules(question)
@@ -76,4 +81,5 @@ def route(question: str) -> RouteResult:
                 error_type=e.__class__.__name__,
                 error_message=_truncate(str(e)),
             ),
+            raw_llm_output=None,
         )

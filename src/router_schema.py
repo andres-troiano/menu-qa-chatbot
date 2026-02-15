@@ -57,3 +57,4 @@ class RouteMeta(BaseModel):
 class RouteResult(BaseModel):
     route: RouterOutput
     meta: RouteMeta
+    raw_llm_output: Optional[str] = None
