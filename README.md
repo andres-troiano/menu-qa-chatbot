@@ -223,6 +223,10 @@ menu-chatbot/
 │   └── dataset.json
 │
 ├── src/
+│   ├── __init__.py
+│   ├── bootstrap.py
+│   ├── chat.py
+│   ├── formatting.py
 │   ├── models.py
 │   ├── ingest.py
 │   ├── normalize.py
@@ -234,8 +238,14 @@ menu-chatbot/
 │   ├── fallback_router.py
 │   ├── router.py
 │
+├── notebooks/
+│   ├── demo.ipynb
+│   └── trace_inspection.ipynb
+│
 ├── tests/
 │   ├── golden_questions.json
+│   ├── test_chat_orchestrator.py
+│   ├── test_bootstrap.py
 │   ├── test_ingest.py
 │   ├── test_normalize.py
 │   ├── test_index.py
