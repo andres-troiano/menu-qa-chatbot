@@ -202,6 +202,20 @@ uv run python -c "from src.bootstrap import load_index; from src.chat import ans
 uv run python src/ingest.py
 ```
 
+### Export normalized inspection views (CSV/JSONL)
+
+```bash
+uv run python -m src.export --in data/dataset.json --out out
+```
+
+In a notebook, you can also use:
+
+```python
+from src.inspect import items_df, summary
+df = items_df(idx)
+summary(idx)
+```
+
 ## Example questions
 
 - “What is the price of a small NUTTY BOWL?”

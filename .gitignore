@@ -156,6 +156,7 @@ $RECYCLE.BIN/
 
 # Project specific
 specs/
+out/
 *.swp
 *.swo
 *~
